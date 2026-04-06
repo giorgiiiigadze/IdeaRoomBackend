@@ -1,0 +1,46 @@
+import { createClient } from "@/lib/supabase/server"
+
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
+
+export default async function dashboardPage(){
+
+    const supabase = await createClient()
+
+    const { data: notes, error } = await supabase.from('testimonials').select('*')
+
+    return (
+        <div className="flex flex-col items-center w-[1000px] border">
+            Dashboard page
+            
+            {notes?.map((note) => (
+                <div key={note.id}>
+                    <span>
+                        {note.name}
+                    </span>
+                </div>
+            ))}
+
+            <Card className="w-full">
+                <CardHeader>
+                    <CardTitle>Card Title</CardTitle>
+                    <CardDescription>Card Description</CardDescription>
+                    <CardAction>Card Action</CardAction>
+                </CardHeader>
+                <CardContent>
+                    <p>Card Content</p>
+                </CardContent>
+                <CardFooter>
+                    <p>Card Footer</p>
+                </CardFooter>
+            </Card>
+        </div>
+    )
+}
