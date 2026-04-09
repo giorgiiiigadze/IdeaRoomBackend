@@ -12,21 +12,9 @@ import {
 
 export default async function dashboardPage(){
 
-    const supabase = await createClient()
-
-    const { data: notes, error } = await supabase.from('testimonials').select('*')
-
     return (
         <div className="flex flex-col items-center w-[1000px] border">
             Dashboard page
-            
-            {notes?.map((note) => (
-                <div key={note.id}>
-                    <span>
-                        {note.name}
-                    </span>
-                </div>
-            ))}
 
             <Card className="w-full">
                 <CardHeader>

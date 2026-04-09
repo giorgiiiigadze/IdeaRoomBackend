@@ -12,30 +12,39 @@ import { toast } from "sonner"
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/dropzone'
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload"
 
-interface ClientResponseFormProps {
+interface BlogFormProps {
   onSuccess: () => void
 }
 
-export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
+export function BlogForm({ onSuccess }: BlogFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
-    name: "",
-    role: "",
-    quote: "",
-    is_active: true,
+    title: "",
+    slug: "",
+    content: "",
+    author: "",
+    is_published: false,
   })
 
   const uploadProps = useSupabaseUpload({
-    bucketName: 'testimonials-images',
-    path: 'client-response-images',
+    bucketName: 'blog-images',
+    path: 'cover-images',
     allowedMimeTypes: ['image/*'],
     maxFiles: 1,
     maxFileSize: 1000 * 1000 * 10,
   })
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
+    const { name, value } = e.target
+
+    if (name === "title") {
+      const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
+      setForm((prev) => ({ ...prev, title: value, slug }))
+      return
+    }
+
+    setForm((prev) => ({ ...prev, [name]: value }))
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -44,39 +53,41 @@ export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
     setLoading(true)
 
     try {
-      let avatar_url: string | null = null
+      let cover_image_url: string | null = null
 
       if (uploadProps.files.length > 0) {
         await uploadProps.onUpload()
 
         const supabase = createClient()
         const file = uploadProps.files[0]
-        const filePath = `client-response-images/${file.name}`
+        const filePath = `cover-images/${file.name}`
 
         const { data } = supabase.storage
-          .from('testimonials-images')
+          .from('blog-images')
           .getPublicUrl(filePath)
 
-        avatar_url = data.publicUrl
+        cover_image_url = data.publicUrl
       }
 
       const supabase = createClient()
-      const { error } = await supabase.from("testimonials").insert({
-        name: form.name,
-        role: form.role || null,
-        quote: form.quote,
-        avatar_url,
-        is_active: form.is_active,
+      const { error } = await supabase.from("blogs").insert({
+        title: form.title,
+        slug: form.slug,
+        content: form.content,
+        author: form.author || null,
+        cover_image_url,
+        is_published: form.is_published,
+        published_at: form.is_published ? new Date().toISOString() : null,
       })
 
       if (error) {
         setError(error.message)
-        toast.error("Failed to add testimonial", { description: error.message })
+        toast.error("Failed to create blog post", { description: error.message })
         return
       }
 
-      toast.success("Testimonial added", {
-        description: `"${form.name}" was added successfully.`,
+      toast.success("Blog post created", {
+        description: `"${form.title}" was created successfully.`,
       })
 
       setTimeout(() => onSuccess(), 100)
@@ -91,43 +102,55 @@ export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-4">
       <div className="flex flex-col gap-2">
-        <Label htmlFor="name">Name <span className="text-destructive">*</span></Label>
+        <Label htmlFor="title">Title <span className="text-destructive">*</span></Label>
         <Input
-          id="name"
-          name="name"
-          placeholder="Name"
-          value={form.name}
+          id="title"
+          name="title"
+          placeholder="My Blog Post"
+          value={form.title}
           onChange={handleChange}
           required
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="role">Role</Label>
+        <Label htmlFor="slug">Slug <span className="text-destructive">*</span></Label>
         <Input
-          id="role"
-          name="role"
-          placeholder="CEO, Startup Georgia"
-          value={form.role}
+          id="slug"
+          name="slug"
+          placeholder="my-blog-post"
+          value={form.slug}
+          onChange={handleChange}
+          required
+        />
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="author">Author</Label>
+        <Input
+          id="author"
+          name="author"
+          placeholder="Jane Smith"
+          value={form.author}
           onChange={handleChange}
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label htmlFor="quote">Quote <span className="text-destructive">*</span></Label>
+        <Label htmlFor="content">Content <span className="text-destructive">*</span></Label>
         <Textarea
-          id="quote"
-          name="quote"
-          placeholder="The clients quote..."
-          value={form.quote}
+          id="content"
+          name="content"
+          placeholder="Full article content goes here..."
+          value={form.content}
           onChange={handleChange}
-          rows={4}
+          rows={8}
           required
         />
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Avatar Image</Label>
+        <Label>Cover Image</Label>
         <Dropzone {...uploadProps}>
           <DropzoneEmptyState />
           <DropzoneContent />
@@ -135,18 +158,18 @@ export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
       </div>
 
       <div className="flex items-center justify-between">
-        <Label htmlFor="is_active">Active</Label>
+        <Label htmlFor="is_published">Publish immediately</Label>
         <Switch
-          id="is_active"
-          checked={form.is_active}
-          onCheckedChange={(val) => setForm((prev) => ({ ...prev, is_active: val }))}
+          id="is_published"
+          checked={form.is_published}
+          onCheckedChange={(val) => setForm((prev) => ({ ...prev, is_published: val }))}
         />
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={loading}>
-        {loading ? "Saving..." : "Add Testimonial"}
+        {loading ? "Saving..." : "Create Blog Post"}
       </Button>
     </form>
   )

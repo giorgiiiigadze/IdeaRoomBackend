@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/Sidebar/app-sidebar";
 import Header from "@/components/Header/Header";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -17,6 +18,7 @@ export default function DashboardLayout({
       <main className="w-full">
         <Header triger={<SidebarTrigger />} />
         {children}
+        <Toaster />
       </main>
     </SidebarProvider>
   );

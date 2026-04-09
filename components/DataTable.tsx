@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -17,24 +17,13 @@ import {
 } from "@tanstack/react-table"
 
 import {
-  ChevronDownIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   ChevronsLeftIcon,
   ChevronsRightIcon,
-  PlusIcon,
-  Settings2,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -56,16 +45,12 @@ import {
 export interface DataTableProps<TData extends { id: string }> {
   data: TData[]
   columns: ColumnDef<TData>[]
-  addLabel?: string | null
-  onAdd?: () => void
   defaultPageSize?: number
 }
 
 export function DataTable<TData extends { id: string }>({
   data: initialData,
   columns,
-  addLabel = "Add",
-  onAdd,
   defaultPageSize = 10,
 }: DataTableProps<TData>) {
   const [data, setData] = useState<TData[]>(initialData)
@@ -101,49 +86,9 @@ export function DataTable<TData extends { id: string }>({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   })
 
-  const hideable = table
-    .getAllColumns()
-    .filter((col) => typeof col.accessorFn !== "undefined" && col.getCanHide())
-
   return (
     <div className="flex flex-col gap-4">
-      {/* Optional top bar */}
-      {/* 
-      <div className="flex items-center justify-end gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm">
-              <Settings2 className="mr-1 size-4" />
-              View
-              <ChevronDownIcon className="ml-1 size-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-40">
-            <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            {hideable.map((col) => (
-              <DropdownMenuCheckboxItem
-                key={col.id}
-                className="capitalize"
-                checked={col.getIsVisible()}
-                onCheckedChange={(val) => col.toggleVisibility(!!val)}
-              >
-                {col.id}
-              </DropdownMenuCheckboxItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
-
-        {addLabel !== null && (
-          <Button variant="outline" size="sm" onClick={onAdd}>
-            <PlusIcon className="mr-1 size-4" />
-            {addLabel}
-          </Button>
-        )}
-      </div> 
-      */}
-
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-muted">
             {table.getHeaderGroups().map((headerGroup) => (
@@ -203,7 +148,7 @@ export function DataTable<TData extends { id: string }>({
               value={`${table.getState().pagination.pageSize}`}
               onValueChange={(value: string) => table.setPageSize(Number(value))}
             >
-              <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+              <SelectTrigger size="sm" className="w-20" id="rows-per-page" >
                 <SelectValue placeholder={table.getState().pagination.pageSize} />
               </SelectTrigger>
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { CurrentUserAvatar } from "../current-user-avatar"
 import {
@@ -14,19 +14,24 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LayoutDashboard, MessageSquare, Notebook, MonitorCog, ChevronsUpDown, LogOut, Settings } from "lucide-react"
+import { LayoutDashboard, MessageSquare, Notebook, MonitorCog, ChevronsUpDown, LogOut, UserRoundKey, MonitorCloud, Mail, UsersRound } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
 const navItems = [
-  { title: "Dashboard",        icon: LayoutDashboard, href: "/dashboard"        },
-  { title: "Client Responses", icon: MessageSquare,   href: "/client-responses" },
-  { title: "Blogs",            icon: Notebook,        href: "/blogs"            },
-  { title: "Works",            icon: MonitorCog,      href: "/works"            },
+  { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard"},
+  { title: "Admins", icon: UserRoundKey, href: "/admins"},
+  { title: "Services", icon: MonitorCloud, href: "/services"},
+  { title: "Client Responses", icon: MessageSquare, href: "/client-responses"},
+  { title: "Blogs", icon: Notebook, href: "/blogs"},
+  { title: "Works", icon: MonitorCog, href: "/works"},
+  { title: "About Us", icon: UsersRound, href: "/about-us"},
+  { title: "Contact", icon: Mail, href: "/contact"},
 ]
 
 export function AppSidebar() {
   const [user, setUser] = useState<User | null>(null)
   const router = useRouter()
+  const pathname = usePathname()
 
   useEffect(() => {
     const supabase = createClient()
@@ -53,7 +58,7 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>
-                  <SidebarMenuButton asChild>
+                  <SidebarMenuButton asChild isActive={pathname === item.href}>
                     <Link href={item.href}>
                       <item.icon className="h-4 w-4" />
                       <span>{item.title}</span>
