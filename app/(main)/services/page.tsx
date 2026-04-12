@@ -31,10 +31,19 @@ type Service = {
   created_at: string
 }
 
+function extractStoragePath(url: string | null, folder: string): string | null {
+  if (!url) return null
+  const marker = `/${folder}/`
+  const idx = url.indexOf(marker)
+  if (idx === -1) return null
+  return `${folder}/${url.slice(idx + marker.length)}`
+}
+
 export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([])
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [editData, setEditData] = useState<Service | null>(null)
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -43,17 +52,69 @@ export default function ServicesPage() {
     else setServices(data ?? [])
   }, [])
 
-  useEffect(() => { fetchData() }, [fetchData])
+  useEffect(() => {
+    let cancelled = false
+
+    async function load() {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("services").select("*")
+      if (cancelled) return
+      if (error) setError(error.message)
+      else setServices(data ?? [])
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  function handleOpenEdit(row: Service) {
+    setEditData(row)
+    setSheetOpen(true)
+  }
+
+  function handleOpenAdd() {
+    setEditData(null)
+    setSheetOpen(true)
+  }
 
   async function handleDelete(id: string, title: string) {
     const supabase = createClient()
+
+    const { data: service } = await supabase
+      .from("services")
+      .select("image, icon")
+      .eq("id", id)
+      .single()
+
     const { error } = await supabase.from("services").delete().eq("id", id)
     if (error) {
       toast.error("Failed to delete", { description: error.message })
-    } else {
-      toast.success("Service deleted", { description: `"${title}" was removed.` })
-      fetchData()
+      return
     }
+
+    const toRemove = [
+      extractStoragePath(service?.image, "service-images"),
+      extractStoragePath(service?.icon, "service-icons"),
+    ].filter(Boolean) as string[]
+
+    if (toRemove.length > 0) {
+      const { error: storageError } = await supabase.storage
+        .from("services-images")
+        .remove(toRemove)
+
+      if (storageError) {
+        toast.warning("Service deleted but failed to remove files from storage", {
+          description: storageError.message,
+        })
+        fetchData()
+        return
+      }
+    }
+
+    toast.success("Service deleted", {
+      description: `"${title}" and its files were removed.`,
+    })
+    fetchData()
   }
 
   const columns: ColumnDef<Service>[] = [
@@ -61,7 +122,10 @@ export default function ServicesPage() {
       id: "select",
       header: ({ table }) => (
         <Checkbox
-          checked={table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate")}
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
           onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
           aria-label="Select all"
         />
@@ -82,7 +146,11 @@ export default function ServicesPage() {
       cell: ({ row }) => {
         const url = row.getValue("image") as string | null
         return url ? (
-          <img src={url} alt="Service image" className="size-10 rounded-full object-cover" />
+          <img
+            src={url}
+            alt="Service image"
+            className="w-16 h-10 object-cover rounded-md"
+          />
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
         )
@@ -106,6 +174,18 @@ export default function ServicesPage() {
       cell: ({ row }) => (
         <span className="font-medium whitespace-nowrap">{row.getValue("title")}</span>
       ),
+    },
+    {
+      accessorKey: "description",
+      header: "Description",
+      cell: ({ row }) => {
+        const desc = row.getValue("description") as string
+        return (
+          <span className="text-muted-foreground whitespace-nowrap">
+            {desc?.length > 60 ? desc.slice(0, 60) + "..." : desc}
+          </span>
+        )
+      },
     },
     {
       accessorKey: "slug",
@@ -149,7 +229,10 @@ export default function ServicesPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem className="gap-2">
+            <DropdownMenuItem
+              className="gap-2"
+              onClick={() => handleOpenEdit(row.original)}
+            >
               <Pencil className="h-4 w-4" />
               Edit
             </DropdownMenuItem>
@@ -183,7 +266,7 @@ export default function ServicesPage() {
             <TabsTrigger value="inactive">Inactive ({inactiveCount})</TabsTrigger>
           </TabsList>
 
-          <Button onClick={() => setSheetOpen(true)}>
+          <Button onClick={handleOpenAdd}>
             <Plus />
             Add Service
           </Button>
@@ -202,16 +285,23 @@ export default function ServicesPage() {
 
       <SheetPanel
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        title="Add Service"
-        description="Fill in the details to add a new service."
+        onOpenChange={(open) => {
+          setSheetOpen(open)
+          if (!open) setEditData(null)
+        }}
+        title={editData ? "Edit Service" : "Add Service"}
+        description={editData ? "Update the service details." : "Fill in the details to add a new service."}
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"
       >
-        <ServiceForm onSuccess={() => {
-          setSheetOpen(false)
-          fetchData()
-        }} />
+        <ServiceForm
+          editData={editData}
+          onSuccess={() => {
+            setSheetOpen(false)
+            setEditData(null)
+            fetchData()
+          }}
+        />
       </SheetPanel>
     </div>
   )

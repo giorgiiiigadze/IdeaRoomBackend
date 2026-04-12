@@ -14,13 +14,14 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LayoutDashboard, MessageSquare, Notebook, MonitorCog, ChevronsUpDown, LogOut, UserRoundKey, MonitorCloud, Mail, UsersRound } from "lucide-react"
+import { LayoutDashboard, MessageSquare, Notebook, MonitorCog, ChevronsUpDown, LogOut, UserRoundKey, MonitorCloud, Mail, UsersRound, FolderOpenDot } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
 const navItems = [
   { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard"},
   { title: "Admins", icon: UserRoundKey, href: "/admins"},
   { title: "Services", icon: MonitorCloud, href: "/services"},
+  {title: "Projects", icon: FolderOpenDot, href: "/projects"},
   { title: "Client Responses", icon: MessageSquare, href: "/client-responses"},
   { title: "Blogs", icon: Notebook, href: "/blogs"},
   { title: "Works", icon: MonitorCog, href: "/works"},

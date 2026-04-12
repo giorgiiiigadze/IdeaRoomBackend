@@ -27,6 +27,8 @@ import { Plus } from "lucide-react"
 import AdminForm from "@/components/Admins/AdminForm"
 
 export default function AdminsPage() {
+  "use no memo"
+
   const [users, setUsers] = useState<User[]>([])
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -57,7 +59,7 @@ export default function AdminsPage() {
         id: "email",
         header: "Email",
         cell: (info) => (
-          <span className="font-medium">{(info.getValue() as string) ?? "—"}</span>
+          <span className="text-blue-600 dark:text-blue-400">{(info.getValue() as string) ?? "—"}</span>
         ),
         size: 260,
         enableSorting: true,
@@ -104,6 +106,7 @@ export default function AdminsPage() {
     []
   )
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const table = useReactTable({
     columns,
     data: users,

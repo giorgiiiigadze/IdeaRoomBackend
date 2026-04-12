@@ -79,9 +79,10 @@ export function MembersForm({ onSuccess }: MembersFormProps) {
       setDropzoneKey((prev) => prev + 1)
 
       onSuccess()
-    } catch (err: any) {
-      setError(err.message || "Something went wrong")
-      toast.error("Something went wrong", { description: err.message })
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Something went wrong"
+      setError(message)
+      toast.error("Something went wrong", { description: message })
     } finally {
       setLoading(false)
     }

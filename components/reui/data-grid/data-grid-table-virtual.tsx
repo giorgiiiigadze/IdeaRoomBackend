@@ -126,7 +126,6 @@ function DataGridTableVirtualStatusRow({
 }
 
 function DataGridTableVirtualBody<TData>({
-  table,
   columnCount,
   topRows,
   centerRows,

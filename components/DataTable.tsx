@@ -1,6 +1,7 @@
+/* eslint-disable react-hooks/incompatible-library */
 "use client"
 
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import {
   type ColumnDef,
   type ColumnFiltersState,
@@ -46,12 +47,18 @@ export interface DataTableProps<TData extends { id: string }> {
   data: TData[]
   columns: ColumnDef<TData>[]
   defaultPageSize?: number
+  expandedRow?: string | null
+  onToggleRow?: (id: string) => void
+  renderExpanded?: (row: TData) => React.ReactNode
 }
 
 export function DataTable<TData extends { id: string }>({
   data: initialData,
   columns,
   defaultPageSize = 10,
+  expandedRow,
+  onToggleRow,
+  renderExpanded,
 }: DataTableProps<TData>) {
   const [data, setData] = useState<TData[]>(initialData)
   const [rowSelection, setRowSelection] = useState({})
@@ -70,7 +77,13 @@ export function DataTable<TData extends { id: string }>({
   const table = useReactTable({
     data,
     columns,
-    state: { sorting, columnVisibility, rowSelection, columnFilters, pagination },
+    state: {
+      sorting,
+      columnVisibility,
+      rowSelection,
+      columnFilters,
+      pagination,
+    },
     getRowId: (row) => row.id,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
@@ -97,7 +110,10 @@ export function DataTable<TData extends { id: string }>({
                   <TableHead key={header.id} colSpan={header.colSpan}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
+                      : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                   </TableHead>
                 ))}
               </TableRow>
@@ -107,16 +123,41 @@ export function DataTable<TData extends { id: string }>({
           <TableBody>
             {table.getRowModel().rows.length ? (
               table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && "selected"}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
+                <React.Fragment key={row.id}>
+                  <TableRow
+                    data-state={row.getIsSelected() && "selected"}
+                    className={
+                      onToggleRow ? "cursor-pointer" : undefined
+                    }
+                    onClick={
+                      onToggleRow
+                        ? () => onToggleRow(row.original.id)
+                        : undefined
+                    }
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+
+                  {renderExpanded && expandedRow === row.original.id && (
+                    <TableRow key={`${row.id}-expanded`} className="hover:bg-transparent">
+                      <TableCell
+                        colSpan={row.getVisibleCells().length}
+                        className="p-0 border-t-0"
+                      >
+                        <div className="bg-muted/40 border-b px-6 py-5 animate-in slide-in-from-top-1 duration-150">
+                          {renderExpanded(row.original)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </React.Fragment>
               ))
             ) : (
               <TableRow>
@@ -146,10 +187,14 @@ export function DataTable<TData extends { id: string }>({
 
             <Select
               value={`${table.getState().pagination.pageSize}`}
-              onValueChange={(value: string) => table.setPageSize(Number(value))}
+              onValueChange={(value: string) =>
+                table.setPageSize(Number(value))
+              }
             >
-              <SelectTrigger size="sm" className="w-20" id="rows-per-page" >
-                <SelectValue placeholder={table.getState().pagination.pageSize} />
+              <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                <SelectValue
+                  placeholder={table.getState().pagination.pageSize}
+                />
               </SelectTrigger>
 
               <SelectContent side="top">

@@ -33,6 +33,7 @@ export default function ClientResponsePage() {
   const [data, setData] = useState<ClientResponse[]>([])
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [editData, setEditData] = useState<ClientResponse | null>(null)
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -42,8 +43,29 @@ export default function ClientResponsePage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    let cancelled = false
+
+    async function load() {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("testimonials").select("*")
+      if (cancelled) return
+      if (error) setError(error.message)
+      else setData(data ?? [])
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
+
+  function handleOpenEdit(row: ClientResponse) {
+    setEditData(row)
+    setSheetOpen(true)
+  }
+
+  function handleOpenAdd() {
+    setEditData(null)
+    setSheetOpen(true)
+  }
 
   async function handleDelete(id: string, name: string, avatarUrl: string | null) {
     const supabase = createClient()
@@ -52,12 +74,10 @@ export default function ClientResponsePage() {
       const bucketName = "testimonials-images"
       const urlParts = avatarUrl.split(`${bucketName}/`)
       const filePath = urlParts[1]
-
       if (filePath) {
         const { error: storageError } = await supabase.storage
           .from(bucketName)
           .remove([filePath])
-
         if (storageError) {
           toast.error("Failed to delete image", { description: storageError.message })
           return
@@ -158,7 +178,10 @@ export default function ClientResponsePage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem className="gap-2">
+            <DropdownMenuItem
+              className="gap-2"
+              onClick={() => handleOpenEdit(row.original)}
+            >
               <Pencil className="h-4 w-4" />
               Edit
             </DropdownMenuItem>
@@ -196,7 +219,7 @@ export default function ClientResponsePage() {
             </TabsTrigger>
           </TabsList>
 
-          <Button onClick={() => setSheetOpen(true)}>
+          <Button onClick={handleOpenAdd}>
             <Plus />
             Add Testimonial
           </Button>
@@ -205,11 +228,9 @@ export default function ClientResponsePage() {
         <TabsContent value="all" className="flex flex-col gap-4">
           <DataTable data={data} columns={columns} />
         </TabsContent>
-
         <TabsContent value="active" className="flex flex-col gap-4">
           <DataTable data={data.filter((d) => d.is_active)} columns={columns} />
         </TabsContent>
-
         <TabsContent value="inactive" className="flex flex-col gap-4">
           <DataTable data={data.filter((d) => !d.is_active)} columns={columns} />
         </TabsContent>
@@ -217,15 +238,20 @@ export default function ClientResponsePage() {
 
       <SheetPanel
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        title="Add Testimonial"
-        description="Fill in the details to add a new client response."
+        onOpenChange={(open) => {
+          setSheetOpen(open)
+          if (!open) setEditData(null)
+        }}
+        title={editData ? "Edit Testimonial" : "Add Testimonial"}
+        description={editData ? "Update the client response." : "Fill in the details to add a new client response."}
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"
       >
         <ClientResponseForm
+          editData={editData}
           onSuccess={() => {
             setSheetOpen(false)
+            setEditData(null)
             fetchData()
           }}
         />

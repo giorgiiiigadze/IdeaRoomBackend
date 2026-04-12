@@ -66,9 +66,14 @@ export function AboutUsForm({ data, onSuccess }: AboutUsFormProps) {
       if (upsertError) throw upsertError
 
       onSuccess()
-    } catch (err: any) {
-      setError(err.message ?? "Something went wrong.")
-    } finally {
+    }  catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError("Something went wrong.")
+      }
+    }
+    finally {
       setLoading(false)
     }
   }

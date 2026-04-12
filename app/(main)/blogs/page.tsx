@@ -35,6 +35,7 @@ export default function BlogsPage() {
   const [blogs, setBlogs] = useState<Blog[]>([])
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [editingBlog, setEditingBlog] = useState<Blog | null>(null)
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -44,8 +45,19 @@ export default function BlogsPage() {
   }, [])
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    let cancelled = false
+
+    async function load() {
+      const supabase = createClient()
+      const { data, error } = await supabase.from("blogs").select("*")
+      if (cancelled) return
+      if (error) setError(error.message)
+      else setBlogs(data ?? [])
+    }
+
+    load()
+    return () => { cancelled = true }
+  }, [])
 
   async function removeStorageImage(coverImageUrl: string | null) {
     if (!coverImageUrl) return
@@ -72,6 +84,16 @@ export default function BlogsPage() {
       toast.success("Blog deleted", { description: `"${title}" was removed.` })
       fetchData()
     }
+  }
+
+  function handleEdit(blog: Blog) {
+    setEditingBlog(blog)
+    setSheetOpen(true)
+  }
+
+  function handleSheetClose(open: boolean) {
+    setSheetOpen(open)
+    if (!open) setEditingBlog(null)
   }
 
   const columns: ColumnDef<Blog>[] = [
@@ -122,8 +144,11 @@ export default function BlogsPage() {
       cell: ({ row }) => {
         const content = row.getValue("content") as string
         return (
-          <span className="text-muted-foreground whitespace-nowrap">
-            {content?.length > 60 ? content.slice(0, 60) + "..." : content}
+          <span
+            className="text-muted-foreground max-w-[300px] truncate block"
+            title={content}
+          >
+            {content}
           </span>
         )
       },
@@ -177,7 +202,7 @@ export default function BlogsPage() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuItem className="gap-2">
+            <DropdownMenuItem className="gap-2" onClick={() => handleEdit(row.original)}>
               <Pencil className="h-4 w-4" />
               Edit
             </DropdownMenuItem>
@@ -236,15 +261,21 @@ export default function BlogsPage() {
 
       <SheetPanel
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        title="Add Blog"
-        description="Fill in the details to add a new blog post."
+        onOpenChange={handleSheetClose}
+        title={editingBlog ? "Edit Blog" : "Add Blog"}
+        description={
+          editingBlog
+            ? "Update the blog post details."
+            : "Fill in the details to add a new blog post."
+        }
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"
       >
         <BlogForm
+          blog={editingBlog}
           onSuccess={() => {
             setSheetOpen(false)
+            setEditingBlog(null)
             fetchData()
           }}
         />

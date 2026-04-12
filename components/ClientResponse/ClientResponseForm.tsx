@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -8,23 +8,45 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
-
 import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/dropzone'
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload"
 
-interface ClientResponseFormProps {
-  onSuccess: () => void
+type ClientResponse = {
+  id: string
+  name: string
+  role: string | null
+  quote: string
+  avatar_url: string | null
+  is_active: boolean
 }
 
-export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
+interface ClientResponseFormProps {
+  onSuccess: () => void
+  editData?: ClientResponse | null
+}
+
+export function ClientResponseForm({ onSuccess, editData }: ClientResponseFormProps) {
+  const isEditing = !!editData
+
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [form, setForm] = useState({
-    name: "",
-    role: "",
-    quote: "",
-    is_active: true,
+    name: editData?.name ?? "",
+    role: editData?.role ?? "",
+    quote: editData?.quote ?? "",
+    is_active: editData?.is_active ?? true,
   })
+
+  useEffect(() => {
+    if (editData) {
+      setForm({
+        name: editData.name,
+        role: editData.role ?? "",
+        quote: editData.quote,
+        is_active: editData.is_active,
+      })
+    }
+  }, [editData])
 
   const uploadProps = useSupabaseUpload({
     bucketName: 'testimonials-images',
@@ -44,46 +66,65 @@ export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
     setLoading(true)
 
     try {
-      let avatar_url: string | null = null
+      const supabase = createClient()
+      let avatar_url: string | null = editData?.avatar_url ?? null
 
       if (uploadProps.files.length > 0) {
         await uploadProps.onUpload()
-
-        const supabase = createClient()
         const file = uploadProps.files[0]
-        const filePath = `client-response-images/${file.name}`
-
         const { data } = supabase.storage
           .from('testimonials-images')
-          .getPublicUrl(filePath)
-
+          .getPublicUrl(`client-response-images/${file.name}`)
         avatar_url = data.publicUrl
       }
 
-      const supabase = createClient()
-      const { error } = await supabase.from("testimonials").insert({
-        name: form.name,
-        role: form.role || null,
-        quote: form.quote,
-        avatar_url,
-        is_active: form.is_active,
-      })
+      if (isEditing) {
+        const { error } = await supabase
+          .from("testimonials")
+          .update({
+            name: form.name,
+            role: form.role || null,
+            quote: form.quote,
+            avatar_url,
+            is_active: form.is_active,
+          })
+          .eq("id", editData.id)
 
-      if (error) {
-        setError(error.message)
-        toast.error("Failed to add testimonial", { description: error.message })
-        return
+        if (error) {
+          setError(error.message)
+          toast.error("Failed to update testimonial", { description: error.message })
+          return
+        }
+
+        toast.success("Testimonial updated", {
+          description: `"${form.name}" was updated successfully.`,
+        })
+      } else {
+        const { error } = await supabase.from("testimonials").insert({
+          name: form.name,
+          role: form.role || null,
+          quote: form.quote,
+          avatar_url,
+          is_active: form.is_active,
+        })
+
+        if (error) {
+          setError(error.message)
+          toast.error("Failed to add testimonial", { description: error.message })
+          return
+        }
+
+        toast.success("Testimonial added", {
+          description: `"${form.name}" was added successfully.`,
+        })
       }
 
-      toast.success("Testimonial added", {
-        description: `"${form.name}" was added successfully.`,
-      })
-
       setTimeout(() => onSuccess(), 100)
-    } catch (err: any) {
-      setError(err.message || "Something went wrong")
-      toast.error("Something went wrong", { description: err.message })
-    } finally {
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Something went wrong"
+        setError(message)
+        toast.error("Something went wrong", { description: message })
+      } finally {
       setLoading(false)
     }
   }
@@ -127,7 +168,21 @@ export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
       </div>
 
       <div className="flex flex-col gap-2">
-        <Label>Avatar Image</Label>
+        <Label>
+          Avatar Image
+          {isEditing && editData?.avatar_url && (
+            <span className="text-xs text-muted-foreground font-normal ml-2">
+              (upload a new one to replace)
+            </span>
+          )}
+        </Label>
+        {isEditing && editData?.avatar_url && uploadProps.files.length === 0 && (
+          <img
+            src={editData.avatar_url}
+            alt="Current avatar"
+            className="w-16 h-16 rounded-full object-cover"
+          />
+        )}
         <Dropzone {...uploadProps}>
           <DropzoneEmptyState />
           <DropzoneContent />
@@ -146,7 +201,7 @@ export function ClientResponseForm({ onSuccess }: ClientResponseFormProps) {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={loading}>
-        {loading ? "Saving..." : "Add Testimonial"}
+        {loading ? "Saving..." : isEditing ? "Update Testimonial" : "Add Testimonial"}
       </Button>
     </form>
   )

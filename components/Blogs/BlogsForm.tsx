@@ -9,43 +9,56 @@ import { Textarea } from "@/components/ui/textarea"
 import { Switch } from "@/components/ui/switch"
 import { toast } from "sonner"
 
-import { Dropzone, DropzoneContent, DropzoneEmptyState } from '@/components/dropzone'
+import { Dropzone, DropzoneContent, DropzoneEmptyState } from "@/components/dropzone"
 import { useSupabaseUpload } from "@/hooks/use-supabase-upload"
 
+type Blog = {
+  id: string
+  title: string
+  slug: string
+  author: string
+  cover_image_url: string | null
+  content: string
+  is_published: boolean
+  published_at: string
+  created_at: string
+}
+
 interface BlogFormProps {
+  blog?: Blog | null
   onSuccess: () => void
 }
 
-export function BlogForm({ onSuccess }: BlogFormProps) {
+function generateSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
+export function BlogForm({ blog, onSuccess }: BlogFormProps) {
+  const isEditing = !!blog
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({
-    title: "",
-    slug: "",
-    content: "",
-    author: "",
-    is_published: false,
-  })
+
+  const [title, setTitle] = useState(blog?.title ?? "")
+  const [customSlug, setCustomSlug] = useState(blog?.slug ?? "")
+  const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
+  const [author, setAuthor] = useState(blog?.author ?? "")
+  const [content, setContent] = useState(blog?.content ?? "")
+  const [isPublished, setIsPublished] = useState(blog?.is_published ?? true)
+
+  const slug = slugManuallyEdited ? customSlug : generateSlug(title)
 
   const uploadProps = useSupabaseUpload({
-    bucketName: 'blog-images',
-    path: 'cover-images',
-    allowedMimeTypes: ['image/*'],
+    bucketName: "blog-images",
+    path: "cover-images",
+    allowedMimeTypes: ["image/*"],
     maxFiles: 1,
     maxFileSize: 1000 * 1000 * 10,
   })
-
-  function handleChange(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) {
-    const { name, value } = e.target
-
-    if (name === "title") {
-      const slug = value.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")
-      setForm((prev) => ({ ...prev, title: value, slug }))
-      return
-    }
-
-    setForm((prev) => ({ ...prev, [name]: value }))
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -53,47 +66,64 @@ export function BlogForm({ onSuccess }: BlogFormProps) {
     setLoading(true)
 
     try {
-      let cover_image_url: string | null = null
+      const supabase = createClient()
+      let cover_image_url: string | null = blog?.cover_image_url ?? null
 
       if (uploadProps.files.length > 0) {
         await uploadProps.onUpload()
 
-        const supabase = createClient()
         const file = uploadProps.files[0]
         const filePath = `cover-images/${file.name}`
-
-        const { data } = supabase.storage
-          .from('blog-images')
-          .getPublicUrl(filePath)
-
+        const { data } = supabase.storage.from("blog-images").getPublicUrl(filePath)
         cover_image_url = data.publicUrl
       }
 
-      const supabase = createClient()
-      const { error } = await supabase.from("blogs").insert({
-        title: form.title,
-        slug: form.slug,
-        content: form.content,
-        author: form.author || null,
+      const payload = {
+        title: title.trim(),
+        slug: slug.trim(),
+        content: content.trim(),
+        author: author.trim() || null,
         cover_image_url,
-        is_published: form.is_published,
-        published_at: form.is_published ? new Date().toISOString() : null,
-      })
-
-      if (error) {
-        setError(error.message)
-        toast.error("Failed to create blog post", { description: error.message })
-        return
+        is_published: isPublished,
+        published_at: isPublished
+          ? (blog?.published_at ?? new Date().toISOString())
+          : null,
       }
 
-      toast.success("Blog post created", {
-        description: `"${form.title}" was created successfully.`,
-      })
+      if (isEditing) {
+        const { error } = await supabase
+          .from("blogs")
+          .update(payload)
+          .eq("id", blog.id)
+
+        if (error) {
+          setError(error.message)
+          toast.error("Failed to update blog post", { description: error.message })
+          return
+        }
+
+        toast.success("Blog post updated", {
+          description: `"${payload.title}" was updated successfully.`,
+        })
+      } else {
+        const { error } = await supabase.from("blogs").insert(payload)
+
+        if (error) {
+          setError(error.message)
+          toast.error("Failed to create blog post", { description: error.message })
+          return
+        }
+
+        toast.success("Blog post created", {
+          description: `"${payload.title}" was created successfully.`,
+        })
+      }
 
       setTimeout(() => onSuccess(), 100)
-    } catch (err: any) {
-      setError(err.message || "Something went wrong")
-      toast.error("Something went wrong", { description: err.message })
+      } catch (err) {
+            const message = err instanceof Error ? err.message : "Something went wrong"
+            setError(message)
+            toast.error("Something went wrong", { description: message })
     } finally {
       setLoading(false)
     }
@@ -107,8 +137,8 @@ export function BlogForm({ onSuccess }: BlogFormProps) {
           id="title"
           name="title"
           placeholder="My Blog Post"
-          value={form.title}
-          onChange={handleChange}
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           required
         />
       </div>
@@ -119,10 +149,17 @@ export function BlogForm({ onSuccess }: BlogFormProps) {
           id="slug"
           name="slug"
           placeholder="my-blog-post"
-          value={form.slug}
-          onChange={handleChange}
+          value={slug}
+          onChange={(e) => {
+            setCustomSlug(e.target.value)
+            setSlugManuallyEdited(true)
+          }}
+          onBlur={(e) => setCustomSlug(generateSlug(e.target.value))}
           required
         />
+        <p className="text-xs text-muted-foreground">
+          Auto-generated from title. You can override it manually.
+        </p>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -131,8 +168,8 @@ export function BlogForm({ onSuccess }: BlogFormProps) {
           id="author"
           name="author"
           placeholder="Jane Smith"
-          value={form.author}
-          onChange={handleChange}
+          value={author}
+          onChange={(e) => setAuthor(e.target.value)}
         />
       </div>
 
@@ -142,8 +179,8 @@ export function BlogForm({ onSuccess }: BlogFormProps) {
           id="content"
           name="content"
           placeholder="Full article content goes here..."
-          value={form.content}
-          onChange={handleChange}
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
           rows={8}
           required
         />
@@ -151,25 +188,37 @@ export function BlogForm({ onSuccess }: BlogFormProps) {
 
       <div className="flex flex-col gap-2">
         <Label>Cover Image</Label>
+        {isEditing && blog.cover_image_url && uploadProps.files.length === 0 && (
+          <img
+            src={blog.cover_image_url}
+            alt="Current cover"
+            className="h-32 w-full rounded-md object-cover mb-1"
+          />
+        )}
         <Dropzone {...uploadProps}>
           <DropzoneEmptyState />
           <DropzoneContent />
         </Dropzone>
+        {isEditing && (
+          <p className="text-xs text-muted-foreground">
+            Upload a new image to replace the current one, or leave empty to keep it.
+          </p>
+        )}
       </div>
 
       <div className="flex items-center justify-between">
         <Label htmlFor="is_published">Publish immediately</Label>
         <Switch
           id="is_published"
-          checked={form.is_published}
-          onCheckedChange={(val) => setForm((prev) => ({ ...prev, is_published: val }))}
+          checked={isPublished}
+          onCheckedChange={setIsPublished}
         />
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <Button type="submit" disabled={loading}>
-        {loading ? "Saving..." : "Create Blog Post"}
+        {loading ? "Saving..." : isEditing ? "Save Changes" : "Create Blog Post"}
       </Button>
     </form>
   )

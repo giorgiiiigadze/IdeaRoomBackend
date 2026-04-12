@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { MoreHorizontal, Pencil, Trash2, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -12,6 +12,7 @@ import { DataTable } from "@/components/DataTable"
 import { ColumnDef } from "@tanstack/react-table"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { toast } from "sonner"
+import { Checkbox } from "@/components/ui/checkbox"
 
 interface IAboutUs {
   id: number
@@ -43,7 +44,6 @@ function getColor(name: string) {
 }
 
 export default function AboutUsPage() {
-  const supabase = createClient()
   const [data, setData] = useState<IAboutUs | null>(null)
   const [videoPublicUrl, setVideoPublicUrl] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
@@ -52,7 +52,9 @@ export default function AboutUsPage() {
   const [memberSheetOpen, setMemberSheetOpen] = useState(false)
   const [editMember, setEditMember] = useState<Member | null>(null)
 
-  const fetchAboutUs = async () => {
+  const fetchAboutUs = useCallback(async () => {
+    const supabase = createClient()
+
     const { data } = await supabase.from("about_us").select("*").single()
     if (data) {
       setData(data)
@@ -69,13 +71,40 @@ export default function AboutUsPage() {
       .select("*")
       .order("created_at", { ascending: true })
     if (membersData) setMembers(membersData)
-  }
+  }, [])
 
   useEffect(() => {
-    fetchAboutUs()
+    let cancelled = false
+
+    async function load() {
+      const supabase = createClient()
+
+      const { data } = await supabase.from("about_us").select("*").single()
+      if (cancelled) return
+      if (data) {
+        setData(data)
+        if (data.video_url) {
+          const { data: urlData } = supabase.storage
+            .from("about-images")
+            .getPublicUrl(data.video_url)
+          setVideoPublicUrl(urlData?.publicUrl ?? null)
+        }
+      }
+
+      const { data: membersData } = await supabase
+        .from("members")
+        .select("*")
+        .order("created_at", { ascending: true })
+      if (cancelled) return
+      if (membersData) setMembers(membersData)
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [])
 
   const handleDeleteMember = async (id: string) => {
+    const supabase = createClient()
     const { error } = await supabase.from("members").delete().eq("id", id)
     if (error) {
       toast.error("Failed to delete member", { description: error.message })
@@ -87,11 +116,26 @@ export default function AboutUsPage() {
 
   const columns: ColumnDef<Member>[] = [
     {
-      accessorKey: "select",
-      header: "Select",
-      cell: ({ row }) => (
-        <span className="font-medium whitespace-nowrap">Checkbnox here</span>
+      id: "select",
+      header: ({ table }) => (
+        <Checkbox
+          checked={
+            table.getIsAllPageRowsSelected() ||
+            (table.getIsSomePageRowsSelected() && "indeterminate")
+          }
+          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          aria-label="Select all"
+        />
       ),
+      cell: ({ row }) => (
+        <Checkbox
+          checked={row.getIsSelected()}
+          onCheckedChange={(value) => row.toggleSelected(!!value)}
+          aria-label="Select row"
+        />
+      ),
+      enableSorting: false,
+      enableHiding: false,
     },
     {
       accessorKey: "image_url",

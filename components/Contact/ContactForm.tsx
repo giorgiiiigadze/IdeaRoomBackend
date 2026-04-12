@@ -1,6 +1,6 @@
 "use client"
 
-import { useRef, useState, useTransition } from "react"
+import { useRef, useTransition } from "react"
 import { updateContact } from "@/lib/actions/contact"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"

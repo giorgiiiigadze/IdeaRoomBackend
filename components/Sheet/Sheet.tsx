@@ -29,13 +29,16 @@ export function SheetPanel({
 }: SheetPanelProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side={side} className={className}>
+      <SheetContent 
+        side={side} 
+        className={`border-none [&::-webkit-scrollbar]:hidden ${className}`}
+      >
         <SheetHeader className="p-0 flex items-start justify-between">
           <SheetTitle>{title}</SheetTitle>
           {description && <SheetDescription>{description}</SheetDescription>}
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto p-2 overflow-x-hidden [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {children}
         </div>
       </SheetContent>

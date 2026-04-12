@@ -1,5 +1,3 @@
-import { createClient } from "@/lib/supabase/server"
-
 import {
   Card,
   CardAction,

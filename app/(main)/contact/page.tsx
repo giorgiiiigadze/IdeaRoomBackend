@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import {
   DataGrid,
@@ -19,10 +19,19 @@ import {
   SortingState,
   useReactTable,
 } from "@tanstack/react-table"
-import { Phone, Mail, MapPin, Pencil } from "lucide-react"
+import { Phone, Mail, MapPin, Pencil, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SheetPanel } from "@/components/Sheet/Sheet"
 import ContactForm from "@/components/Contact/ContactForm"
+import { toast } from "sonner"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+
+const supabase = createClient()
 
 interface IContact {
   id: number
@@ -40,34 +49,59 @@ interface IMessage {
 }
 
 export default function ContactPage() {
+  "use no memo"
+
   const [data, setData] = useState<IContact[]>([])
   const [messages, setMessages] = useState<IMessage[]>([])
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [selectedMessage, setSelectedMessage] = useState<IMessage | null>(null)
   const [contactSorting, setContactSorting] = useState<SortingState>([])
   const [messageSorting, setMessageSorting] = useState<SortingState>([])
   const [messagePagination, setMessagePagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 5,
   })
-  const supabase = createClient()
 
-  const fetchContact = async () => {
+  const fetchContact = useCallback(async () => {
     const { data } = await supabase.from("contact").select("*")
     if (data) setData(data)
-  }
+  }, [])
 
-  const fetchMessages = async () => {
+  const fetchMessages = useCallback(async () => {
     const { data } = await supabase
       .from("messages")
       .select("*")
       .order("created_at", { ascending: false })
     if (data) setMessages(data)
-  }
+  }, [])
 
   useEffect(() => {
-    fetchContact()
-    fetchMessages()
+    let cancelled = false
+
+    async function load() {
+      const [{ data: contactData }, { data: messagesData }] = await Promise.all([
+        supabase.from("contact").select("*"),
+        supabase.from("messages").select("*").order("created_at", { ascending: false }),
+      ])
+
+      if (cancelled) return
+      if (contactData) setData(contactData)
+      if (messagesData) setMessages(messagesData)
+    }
+
+    load()
+    return () => { cancelled = true }
   }, [])
+
+  const handleMessageDelete = useCallback(async (id: string) => {
+    const { error } = await supabase.from("messages").delete().eq("id", id)
+    if (error) {
+      toast.error("Failed to delete message", { description: error.message })
+    } else {
+      toast.success("Message deleted")
+      fetchMessages()
+    }
+  }, [fetchMessages])
 
   const contact = data[0]
 
@@ -141,8 +175,13 @@ export default function ContactPage() {
         accessorKey: "message",
         id: "message",
         header: "Message",
-        cell: (info) => (
-          <span className="line-clamp-1">{(info.getValue() as string) ?? "—"}</span>
+        cell: ({ row }) => (
+          <span
+            className="line-clamp-1 cursor-pointer hover:text-foreground text-muted-foreground transition-colors"
+            onClick={() => setSelectedMessage(row.original)}
+          >
+            {row.original.message ?? "—"}
+          </span>
         ),
         size: 380,
       },
@@ -157,10 +196,28 @@ export default function ContactPage() {
         ),
         size: 200,
       },
+      {
+        id: "actions",
+        header: "",
+        cell: ({ row }) => (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8 text-destructive hover:text-destructive"
+            onClick={() => handleMessageDelete(row.original.id)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        ),
+        size: 50,
+        enableSorting: false,
+        enableHiding: false,
+      },
     ],
-    []
+    [handleMessageDelete]
   )
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const contactTable = useReactTable({
     columns: contactColumns,
     data,
@@ -171,6 +228,7 @@ export default function ContactPage() {
     getSortedRowModel: getSortedRowModel(),
   })
 
+   
   const messageTable = useReactTable({
     columns: messageColumns,
     data: messages,
@@ -200,7 +258,7 @@ export default function ContactPage() {
             <div className="flex flex-col gap-1">
               <h1 className="text-2xl font-semibold tracking-tight">Contact</h1>
               <p className="text-sm text-muted-foreground">
-                The academy's public contact information.
+                The academy&apos;s public contact information.
               </p>
             </div>
             <Button onClick={() => setSheetOpen(true)}>
@@ -259,6 +317,26 @@ export default function ContactPage() {
           </div>
         </div>
       </DataGrid>
+
+      <Dialog open={!!selectedMessage} onOpenChange={() => setSelectedMessage(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Message from {selectedMessage?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-medium text-muted-foreground">Email</p>
+              <p className="text-sm text-blue-600 dark:text-blue-400">{selectedMessage?.email}</p>
+            </div>
+            <div className="flex flex-col gap-1">
+              <p className="text-xs font-medium text-muted-foreground">Message</p>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
+                {selectedMessage?.message}
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
