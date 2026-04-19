@@ -22,10 +22,12 @@ import { toast } from "sonner"
 type Blog = {
   id: string
   title: string
+  title_ka: string | null
   slug: string
   author: string
   cover_image_url: string | null
   content: string
+  content_ka: string | null
   is_published: boolean
   published_at: string
   created_at: string
@@ -36,6 +38,7 @@ export default function BlogsPage() {
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null)
+  const [lang, setLang] = useState<"en" | "ka">("en")
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -121,11 +124,11 @@ export default function BlogsPage() {
     },
     {
       accessorKey: "cover_image_url",
-      header: "Image",
+      header: "იმიჯი",
       cell: ({ row }) => {
         const url = row.getValue("cover_image_url") as string | null
         return url ? (
-          <img src={url} alt="Image" className="size-10 rounded-full object-cover" />
+          <img src={url} alt="Cover" className="size-10 rounded-full object-cover" />
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
         )
@@ -133,16 +136,23 @@ export default function BlogsPage() {
     },
     {
       accessorKey: "title",
-      header: "Title",
+      header: "სათაური",
       cell: ({ row }) => (
-        <span className="font-medium whitespace-nowrap">{row.getValue("title")}</span>
+        <span className="font-medium whitespace-nowrap">
+          {lang === "ka"
+            ? (row.original.title_ka ?? row.original.title)
+            : row.original.title}
+        </span>
       ),
     },
     {
       accessorKey: "content",
-      header: "Content",
+      header: "კონტენტი",
       cell: ({ row }) => {
-        const content = row.getValue("content") as string
+        const content =
+          lang === "ka"
+            ? (row.original.content_ka ?? row.original.content)
+            : row.original.content
         return (
           <span
             className="text-muted-foreground max-w-[300px] truncate block"
@@ -155,21 +165,23 @@ export default function BlogsPage() {
     },
     {
       accessorKey: "slug",
-      header: "Slug",
+      header: "ლინკის სახელი(slug)",
       cell: ({ row }) => (
-        <span className="whitespace-nowrap text-muted-foreground">{row.getValue("slug")}</span>
+        <span className="whitespace-nowrap text-muted-foreground">
+          {row.getValue("slug")}
+        </span>
       ),
     },
     {
       accessorKey: "author",
-      header: "Author",
+      header: "ავტორი",
       cell: ({ row }) => (
         <span className="whitespace-nowrap">{row.getValue("author")}</span>
       ),
     },
     {
       accessorKey: "is_published",
-      header: "Status",
+      header: "სტატუსი",
       cell: ({ row }) => {
         const published = row.getValue("is_published") as boolean
         return (
@@ -208,7 +220,9 @@ export default function BlogsPage() {
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 text-destructive focus:text-destructive"
-              onClick={() => handleDelete(row.original.id, row.original.title, row.original.cover_image_url)}
+              onClick={() =>
+                handleDelete(row.original.id, row.original.title, row.original.cover_image_url)
+              }
             >
               <Trash2 className="h-4 w-4" />
               Delete
@@ -231,19 +245,40 @@ export default function BlogsPage() {
       <Tabs defaultValue="all" className="w-full flex-col gap-6">
         <div className="flex w-full items-center justify-between">
           <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
-            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="all">ყველა</TabsTrigger>
             <TabsTrigger value="published">
-              Published <Badge variant="secondary">{publishedCount}</Badge>
+              გამოქვეყნებულები <Badge variant="secondary">{publishedCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="drafts">
-              Drafts <Badge variant="secondary">{draftCount}</Badge>
+              დრაფტები <Badge variant="secondary">{draftCount}</Badge>
             </TabsTrigger>
           </TabsList>
 
-          <Button onClick={() => setSheetOpen(true)}>
-            <Plus />
-            Add Blog
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border p-0.5 gap-0.5">
+              <Button
+                variant={lang === "en" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("en")}
+              >
+                EN
+              </Button>
+              <Button
+                variant={lang === "ka" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("ka")}
+              >
+                KA
+              </Button>
+            </div>
+
+            <Button onClick={() => setSheetOpen(true)}>
+              <Plus />
+              დაამატე ბლოგი
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="all" className="flex flex-col gap-4">
@@ -262,11 +297,11 @@ export default function BlogsPage() {
       <SheetPanel
         open={sheetOpen}
         onOpenChange={handleSheetClose}
-        title={editingBlog ? "Edit Blog" : "Add Blog"}
+        title={editingBlog ? "დააედითე ბლოგი" : "დაამატე ბლოგი"}
         description={
           editingBlog
-            ? "Update the blog post details."
-            : "Fill in the details to add a new blog post."
+            ? "დაააფდეითე ბლოგის ინფორმაციის დეტალები."
+            : "შეავსე ინფორმაცია რომ დაამატო ახალი ბლოგი."
         }
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"

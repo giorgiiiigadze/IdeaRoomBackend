@@ -22,7 +22,9 @@ import { toast } from "sonner"
 type Service = {
   id: string
   title: string
+  title_ka: string | null
   description: string
+  description_ka: string | null
   image: string | null
   badge: string | null
   icon: string | null
@@ -44,6 +46,7 @@ export default function ServicesPage() {
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editData, setEditData] = useState<Service | null>(null)
+  const [lang, setLang] = useState<"en" | "ka">("en")
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -142,7 +145,7 @@ export default function ServicesPage() {
     },
     {
       accessorKey: "image",
-      header: "Image",
+      header: "იმიჯი",
       cell: ({ row }) => {
         const url = row.getValue("image") as string | null
         return url ? (
@@ -170,16 +173,23 @@ export default function ServicesPage() {
     },
     {
       accessorKey: "title",
-      header: "Title",
+      header: "სათაური",
       cell: ({ row }) => (
-        <span className="font-medium whitespace-nowrap">{row.getValue("title")}</span>
+        <span className="font-medium whitespace-nowrap">
+          {lang === "ka"
+            ? (row.original.title_ka ?? row.original.title)
+            : row.original.title}
+        </span>
       ),
     },
     {
       accessorKey: "description",
-      header: "Description",
+      header: "აღწერა",
       cell: ({ row }) => {
-        const desc = row.getValue("description") as string
+        const desc =
+          lang === "ka"
+            ? (row.original.description_ka ?? row.original.description)
+            : row.original.description
         return (
           <span className="text-muted-foreground whitespace-nowrap">
             {desc?.length > 60 ? desc.slice(0, 60) + "..." : desc}
@@ -189,14 +199,16 @@ export default function ServicesPage() {
     },
     {
       accessorKey: "slug",
-      header: "Slug",
+      header: "ლინკის სახელი(slug)",
       cell: ({ row }) => (
-        <span className="whitespace-nowrap text-muted-foreground">{row.getValue("slug")}</span>
+        <span className="whitespace-nowrap text-muted-foreground">
+          {row.getValue("slug")}
+        </span>
       ),
     },
     {
       accessorKey: "is_active",
-      header: "Status",
+      header: "სტატუსი",
       cell: ({ row }) => {
         const active = row.getValue("is_active") as boolean
         return (
@@ -234,14 +246,14 @@ export default function ServicesPage() {
               onClick={() => handleOpenEdit(row.original)}
             >
               <Pencil className="h-4 w-4" />
-              Edit
+              დააედითე
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 text-destructive focus:text-destructive"
               onClick={() => handleDelete(row.original.id, row.original.title)}
             >
               <Trash2 className="h-4 w-4" />
-              Delete
+              წაშალე
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -261,15 +273,36 @@ export default function ServicesPage() {
       <Tabs defaultValue="all" className="w-full flex-col gap-6">
         <div className="flex w-full items-center justify-between">
           <TabsList>
-            <TabsTrigger value="all">All ({services.length})</TabsTrigger>
-            <TabsTrigger value="active">Active ({activeCount})</TabsTrigger>
-            <TabsTrigger value="inactive">Inactive ({inactiveCount})</TabsTrigger>
+            <TabsTrigger value="all">ყველა ({services.length})</TabsTrigger>
+            <TabsTrigger value="active">აქტიური ({activeCount})</TabsTrigger>
+            <TabsTrigger value="inactive">არა აქტიური ({inactiveCount})</TabsTrigger>
           </TabsList>
 
-          <Button onClick={handleOpenAdd}>
-            <Plus />
-            Add Service
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border p-0.5 gap-0.5">
+              <Button
+                variant={lang === "en" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("en")}
+              >
+                EN
+              </Button>
+              <Button
+                variant={lang === "ka" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("ka")}
+              >
+                KA
+              </Button>
+            </div>
+
+            <Button onClick={handleOpenAdd}>
+              <Plus />
+              დაამატე სერვიცი
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="all" className="flex flex-col gap-4">
@@ -289,8 +322,12 @@ export default function ServicesPage() {
           setSheetOpen(open)
           if (!open) setEditData(null)
         }}
-        title={editData ? "Edit Service" : "Add Service"}
-        description={editData ? "Update the service details." : "Fill in the details to add a new service."}
+        title={editData ? "დააედითე სერვისი" : "დაამატე სერვისი"}
+        description={
+          editData
+            ? "დაააფდეითე სერვისის დეტალები."
+            : "ჩაწერე ინფორმაცია რომ დაამატო ახალი სერვისი."
+        }
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"
       >

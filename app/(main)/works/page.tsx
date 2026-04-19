@@ -11,7 +11,6 @@ import { Button } from "@/components/ui/button"
 import { Plus, MoreHorizontal, Trash2, Pencil } from "lucide-react"
 import { SheetPanel } from "@/components/Sheet/Sheet"
 import { WorkForm } from "@/components/Works/WorksForm"
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,9 +23,12 @@ type Work = {
   id: string
   slug: string
   title: string
+  title_ka: string | null
   category: string
+  category_ka: string | null
   image: string
   description: string | null
+  description_ka: string | null
   client: string | null
   published: boolean
   created_at: string
@@ -38,6 +40,7 @@ export default function WorksPage() {
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingWork, setEditingWork] = useState<Work | null>(null)
+  const [lang, setLang] = useState<"en" | "ka">("en")
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -67,7 +70,6 @@ export default function WorksPage() {
 
     try {
       const url = new URL(image)
-      // Path will be like: /storage/v1/object/public/works-images/folder/file.jpg
       const pathParts = url.pathname.split("/public/works-images/")
       if (pathParts.length < 2) {
         toast.error("Could not parse image path")
@@ -132,7 +134,7 @@ export default function WorksPage() {
     },
     {
       accessorKey: "image",
-      header: "Image",
+      header: "იმიჯი",
       cell: ({ row }) => {
         const url = row.getValue("image") as string | null
         return url ? (
@@ -144,35 +146,45 @@ export default function WorksPage() {
     },
     {
       accessorKey: "title",
-      header: "Title",
+      header: "სათაური",
       cell: ({ row }) => (
-        <span className="font-medium whitespace-nowrap">{row.getValue("title")}</span>
+        <span className="font-medium whitespace-nowrap">
+          {lang === "ka"
+            ? (row.original.title_ka ?? row.original.title)
+            : row.original.title}
+        </span>
       ),
     },
     {
       accessorKey: "category",
-      header: "Category",
+      header: "კატეგორიები",
       cell: ({ row }) => (
-        <span className="whitespace-nowrap text-muted-foreground">{row.getValue("category")}</span>
+        <span className="whitespace-nowrap text-muted-foreground">
+          {lang === "ka"
+            ? (row.original.category_ka ?? row.original.category)
+            : row.original.category}
+        </span>
       ),
     },
     {
       accessorKey: "slug",
-      header: "Slug",
+      header: "ლინკის სახელი(slug)",
       cell: ({ row }) => (
-        <span className="whitespace-nowrap text-muted-foreground">{row.getValue("slug")}</span>
+        <span className="whitespace-nowrap text-muted-foreground">
+          {row.getValue("slug")}
+        </span>
       ),
     },
     {
       accessorKey: "client",
-      header: "Client",
+      header: "კლიენტი",
       cell: ({ row }) => (
         <span className="whitespace-nowrap">{row.getValue("client") ?? "—"}</span>
       ),
     },
     {
       accessorKey: "published",
-      header: "Status",
+      header: "სტატუსი",
       cell: ({ row }) => {
         const published = row.getValue("published") as boolean
         return (
@@ -234,19 +246,40 @@ export default function WorksPage() {
       <Tabs defaultValue="all" className="w-full flex-col gap-6">
         <div className="flex w-full items-center justify-between">
           <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
-            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="all">ყველა</TabsTrigger>
             <TabsTrigger value="published">
-              Published <Badge variant="secondary">{publishedCount}</Badge>
+              გამოქვეყნებულები <Badge variant="secondary">{publishedCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="drafts">
-              Drafts <Badge variant="secondary">{draftCount}</Badge>
+              დრაფტები <Badge variant="secondary">{draftCount}</Badge>
             </TabsTrigger>
           </TabsList>
 
-          <Button onClick={() => setSheetOpen(true)}>
-            <Plus />
-            Add Work
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border p-0.5 gap-0.5">
+              <Button
+                variant={lang === "en" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("en")}
+              >
+                EN
+              </Button>
+              <Button
+                variant={lang === "ka" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("ka")}
+              >
+                KA
+              </Button>
+            </div>
+
+            <Button onClick={() => setSheetOpen(true)}>
+              <Plus />
+              დაამატე სამუშაო
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="all" className="flex flex-col gap-4">
@@ -260,17 +293,16 @@ export default function WorksPage() {
         <TabsContent value="drafts" className="flex flex-col gap-4">
           <DataTable data={works.filter((w) => !w.published)} columns={columns} />
         </TabsContent>
-
       </Tabs>
 
       <SheetPanel
         open={sheetOpen}
         onOpenChange={handleSheetClose}
-        title={editingWork ? "Edit Work" : "Add Work"}
+        title={editingWork ? "დააედითე სამუშაო" : "დაამატე სამუშაო"}
         description={
           editingWork
-            ? "Update the work details."
-            : "Fill in the details to add a new work."
+            ? "დაააფდეითე სამუშაოს დეტალები."
+            : "შეავსე ინფორმაცია რომ დაამატო სამუშაო."
         }
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"

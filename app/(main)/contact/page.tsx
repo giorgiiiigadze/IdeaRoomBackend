@@ -110,7 +110,7 @@ export default function ContactPage() {
       {
         accessorKey: "phone_number",
         id: "phone_number",
-        header: "Phone Number",
+        header: "ტელეფონის ნომერი",
         cell: (info) => (
           <div className="flex items-center gap-2">
             <Phone className="size-4 text-muted-foreground" />
@@ -124,7 +124,7 @@ export default function ContactPage() {
       {
         accessorKey: "academy_email",
         id: "academy_email",
-        header: "Email",
+        header: "აკადემიის ემაილი",
         cell: (info) => (
           <div className="flex items-center gap-2">
             <Mail className="size-4 text-muted-foreground" />
@@ -138,7 +138,7 @@ export default function ContactPage() {
       {
         accessorKey: "academy_adress",
         id: "academy_adress",
-        header: "Address",
+        header: "აკადემიის მისამართი",
         cell: (info) => (
           <div className="flex items-center gap-2">
             <MapPin className="size-4 text-muted-foreground" />
@@ -156,14 +156,14 @@ export default function ContactPage() {
       {
         accessorKey: "name",
         id: "name",
-        header: "Name",
+        header: "სახელი",
         cell: (info) => <span>{(info.getValue() as string) ?? "—"}</span>,
         size: 180,
       },
       {
         accessorKey: "email",
         id: "email",
-        header: "Email",
+        header: "ემაილი",
         cell: (info) => (
           <span className="text-blue-600 dark:text-blue-400">
             {(info.getValue() as string) ?? "—"}
@@ -174,7 +174,7 @@ export default function ContactPage() {
       {
         accessorKey: "message",
         id: "message",
-        header: "Message",
+        header: "მესიჯი",
         cell: ({ row }) => (
           <span
             className="line-clamp-1 cursor-pointer hover:text-foreground text-muted-foreground transition-colors"
@@ -188,7 +188,7 @@ export default function ContactPage() {
       {
         accessorKey: "created_at",
         id: "created_at",
-        header: "Date",
+        header: "თარიღი",
         cell: (info) => (
           <span className="text-muted-foreground text-sm">
             {new Date(info.getValue() as string).toLocaleString()}
@@ -256,14 +256,14 @@ export default function ContactPage() {
         <div className="w-full p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-semibold tracking-tight">Contact</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">კონტაქტი</h1>
               <p className="text-sm text-muted-foreground">
-                The academy&apos;s public contact information.
+                აკადემიის საჯარო საკონტაქტო ინფორმაცია
               </p>
             </div>
             <Button onClick={() => setSheetOpen(true)}>
               <Pencil />
-              Edit Contact
+              დააედითე კონტაქტი
             </Button>
           </div>
 
@@ -300,9 +300,9 @@ export default function ContactPage() {
         <div className="w-full p-6 flex flex-col gap-4">
           <div className="flex items-center justify-between">
             <div className="flex flex-col gap-1">
-              <h1 className="text-2xl font-semibold tracking-tight">User Messages</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">მომხმარებლების მესიჯები</h1>
               <p className="text-sm text-muted-foreground">
-                The list of users who contacted the academy.
+                იმ მომხმარებელტა სია რომლებიც დაუკავშირდა აკადემიას
               </p>
             </div>
           </div>
@@ -321,15 +321,15 @@ export default function ContactPage() {
       <Dialog open={!!selectedMessage} onOpenChange={() => setSelectedMessage(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Message from {selectedMessage?.name}</DialogTitle>
+            <DialogTitle>მესიჯი {selectedMessage?.name} სგან</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <p className="text-xs font-medium text-muted-foreground">Email</p>
+              <p className="text-xs font-medium text-muted-foreground">ემაილი</p>
               <p className="text-sm text-blue-600 dark:text-blue-400">{selectedMessage?.email}</p>
             </div>
             <div className="flex flex-col gap-1">
-              <p className="text-xs font-medium text-muted-foreground">Message</p>
+              <p className="text-xs font-medium text-muted-foreground">მესიჯი</p>
               <p className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                 {selectedMessage?.message}
               </p>

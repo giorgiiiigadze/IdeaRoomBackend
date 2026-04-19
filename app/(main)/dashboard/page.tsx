@@ -25,10 +25,7 @@ const sections = [
 export default async function DashboardPage() {
   return (
     <div className="flex flex-col gap-6 p-6 w-full">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">Welcome back. Here&apos;s a quick overview.</p>
-      </div>
+        <h1 className="text-2xl font-bold">დაშბორდი</h1>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
         {sections.map((section) => (

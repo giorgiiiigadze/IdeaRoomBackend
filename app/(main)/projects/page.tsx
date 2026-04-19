@@ -21,17 +21,30 @@ import { toast } from "sonner"
 import { ProjectForm } from "@/components/Projects/ProjectForm"
 import { ProjectVideos } from "@/components/Projects/ProjectVideos"
 
-type Project = {
+export type Project = {
   id: string
   title: string
+  title_ka: string | null
   description: string | null
+  description_ka: string | null
   service_id: string
+
   status: "active" | "inactive" | "completed" | "archived"
+
+  slug: string | null
+  main_video: string | null
+
   created_at: string
   updated_at: string
-  slug: string | null
-  services?: Record<string, string> | null
-  videos?: { count: number }[]
+
+  services?: {
+    id: string
+    title: string
+  } | null
+
+  videos?: {
+    count: number
+  }[]
 }
 
 const statusConfig: Record<
@@ -66,6 +79,7 @@ export default function ProjectPage() {
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editingProject, setEditingProject] = useState<Project | null>(null)
   const [expandedRow, setExpandedRow] = useState<string | null>(null)
+  const [lang, setLang] = useState<"en" | "ka">("en")
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -97,6 +111,29 @@ export default function ProjectPage() {
 
   async function handleDelete(id: string, title: string) {
     const supabase = createClient()
+
+    const { data: videos, error: fetchError } = await supabase
+      .from("videos")
+      .select("file_path")
+      .eq("project_id", id)
+
+    if (fetchError) {
+      toast.error("Failed to fetch project videos", { description: fetchError.message })
+      return
+    }
+
+    if (videos && videos.length > 0) {
+      const filePaths = videos.map((v) => v.file_path)
+      const { error: storageError } = await supabase.storage
+        .from("projects-videos")
+        .remove(filePaths)
+
+      if (storageError) {
+        toast.error("Failed to delete video files", { description: storageError.message })
+        return
+      }
+    }
+
     const { error } = await supabase.from("projects").delete().eq("id", id)
     if (error) {
       toast.error("Failed to delete", { description: error.message })
@@ -150,14 +187,18 @@ export default function ProjectPage() {
     },
     {
       accessorKey: "title",
-      header: "Title",
+      header: "სათაური",
       cell: ({ row }) => (
-        <span className="font-medium whitespace-nowrap">{row.getValue("title")}</span>
+        <span className="font-medium whitespace-nowrap">
+          {lang === "ka"
+            ? (row.original.title_ka ?? row.original.title)
+            : row.original.title}
+        </span>
       ),
     },
     {
       id: "service",
-      header: "Service",
+      header: "სერვიცი",
       cell: ({ row }) => {
         const service = row.original.services
         const serviceName = service?.title ?? null
@@ -172,16 +213,19 @@ export default function ProjectPage() {
     },
     {
       accessorKey: "slug",
-      header: "Slug",
+      header: "ლინკის სახელი(slug)",
       cell: ({ row }) => (
         <span className="font-medium whitespace-nowrap">{row.getValue("slug")}</span>
       ),
     },
     {
       accessorKey: "description",
-      header: "Description",
+      header: "აღწერა",
       cell: ({ row }) => {
-        const description = row.getValue("description") as string | null
+        const description =
+          lang === "ka"
+            ? (row.original.description_ka ?? row.original.description)
+            : row.original.description
         return description ? (
           <span
             className="text-muted-foreground max-w-[300px] truncate block"
@@ -195,8 +239,21 @@ export default function ProjectPage() {
       },
     },
     {
+      id: "hasVideo",
+      header: "ვიდეო",
+      cell: ({ row }) => {
+        const hasVideo = !!row.original.main_video
+
+        return (
+          <Badge variant={hasVideo ? "default" : "secondary"}>
+            {hasVideo ? "Yes" : "No"}
+          </Badge>
+        )
+      },
+    },
+    {
       id: "videos",
-      header: "Videos",
+      header: "ვიდეოები",
       cell: ({ row }) => {
         const count = row.original.videos?.[0]?.count ?? 0
         return (
@@ -208,7 +265,7 @@ export default function ProjectPage() {
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: "სტატუსი",
       cell: ({ row }) => {
         const status = row.getValue("status") as Project["status"]
         const config = statusConfig[status]
@@ -222,7 +279,7 @@ export default function ProjectPage() {
     },
     {
       accessorKey: "created_at",
-      header: "Created",
+      header: "შექმნის თარიღი",
       cell: ({ row }) => {
         const date = new Date(row.getValue("created_at"))
         return (
@@ -254,14 +311,14 @@ export default function ProjectPage() {
           <DropdownMenuContent align="end">
             <DropdownMenuItem className="gap-2" onClick={() => handleEdit(row.original)}>
               <Pencil className="h-4 w-4" />
-              Edit
+              დააედითე
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 text-destructive focus:text-destructive"
               onClick={() => handleDelete(row.original.id, row.original.title)}
             >
               <Trash2 className="h-4 w-4" />
-              Delete
+              წაშალე
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -273,31 +330,52 @@ export default function ProjectPage() {
 
   if (error) return <div className="p-6 text-destructive">Error: {error}</div>
 
-  const activeCount = projects.filter((p) => p.status === "active").length
+  const activeCount    = projects.filter((p) => p.status === "active").length
   const completedCount = projects.filter((p) => p.status === "completed").length
-  const archivedCount = projects.filter((p) => p.status === "archived").length
+  const archivedCount  = projects.filter((p) => p.status === "archived").length
 
   return (
     <div className="w-full p-6">
       <Tabs defaultValue="all" className="w-full flex-col gap-6">
         <div className="flex w-full items-center justify-between">
           <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
-            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="all">ყველა</TabsTrigger>
             <TabsTrigger value="active">
-              Active <Badge variant="secondary">{activeCount}</Badge>
+              აქტიურები <Badge variant="secondary">{activeCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="completed">
-              Completed <Badge variant="secondary">{completedCount}</Badge>
+              დამთავრებულები <Badge variant="secondary">{completedCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="archived">
-              Archived <Badge variant="secondary">{archivedCount}</Badge>
+              დაარქივებულები <Badge variant="secondary">{archivedCount}</Badge>
             </TabsTrigger>
           </TabsList>
 
-          <Button onClick={() => setSheetOpen(true)}>
-            <Plus />
-            Add Project
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center rounded-md border p-0.5 gap-0.5">
+              <Button
+                variant={lang === "en" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("en")}
+              >
+                EN
+              </Button>
+              <Button
+                variant={lang === "ka" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("ka")}
+              >
+                KA
+              </Button>
+            </div>
+
+            <Button onClick={() => setSheetOpen(true)}>
+              <Plus />
+              დაამატე პროექტი
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="all" className="flex flex-col gap-4">
@@ -344,11 +422,11 @@ export default function ProjectPage() {
       <SheetPanel
         open={sheetOpen}
         onOpenChange={handleSheetClose}
-        title={editingProject ? "Edit Project" : "Add Project"}
+        title={editingProject ? "დააედითე პროექტი" : "შექმენი პროექტი"}
         description={
           editingProject
-            ? "Update the project details."
-            : "Fill in the details to add a new project."
+            ? "დაააფდეითე პროექტის დეტალები."
+            : "ჩაწერე ინფორმაცია რომ დაამატო ახალი პროექტი."
         }
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"

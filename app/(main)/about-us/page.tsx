@@ -14,16 +14,19 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { toast } from "sonner"
 import { Checkbox } from "@/components/ui/checkbox"
 
-interface IAboutUs {
+interface AboutUs {
   id: number
   description: string
+  description_ka: string | null
   video_url: string
 }
 
 interface Member {
   id: string
   name: string
+  name_ka: string | null
   role: string
+  role_ka: string | null
   image_url: string | null
   created_at: string
 }
@@ -44,9 +47,10 @@ function getColor(name: string) {
 }
 
 export default function AboutUsPage() {
-  const [data, setData] = useState<IAboutUs | null>(null)
+  const [data, setData] = useState<AboutUs | null>(null)
   const [videoPublicUrl, setVideoPublicUrl] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [lang, setLang] = useState<"en" | "ka">("en")
 
   const [members, setMembers] = useState<Member[]>([])
   const [memberSheetOpen, setMemberSheetOpen] = useState(false)
@@ -103,16 +107,43 @@ export default function AboutUsPage() {
     return () => { cancelled = true }
   }, [])
 
-  const handleDeleteMember = async (id: string) => {
+  const handleDeleteMember = async (id: string, imageUrl: string | null) => {
     const supabase = createClient()
     const { error } = await supabase.from("members").delete().eq("id", id)
     if (error) {
       toast.error("Failed to delete member", { description: error.message })
-    } else {
-      toast.success("Member deleted")
-      fetchAboutUs()
+      return
     }
+
+    if (imageUrl) {
+      try {
+        const url = new URL(imageUrl)
+        const pathParts = url.pathname.split("/public/member-images/")
+        if (pathParts.length >= 2) {
+          const filePath = decodeURIComponent(pathParts[1])
+          const { error: storageError } = await supabase.storage
+            .from("member-images")
+            .remove([filePath])
+          if (storageError) {
+            toast.warning("Member deleted but failed to remove photo from storage", {
+              description: storageError.message,
+            })
+            fetchAboutUs()
+            return
+          }
+        }
+      } catch {
+        toast.warning("Member deleted but could not parse image URL")
+      }
+    }
+
+    toast.success("Member deleted")
+    fetchAboutUs()
   }
+
+  const displayDescription = lang === "ka" && data?.description_ka
+    ? data.description_ka
+    : data?.description
 
   const columns: ColumnDef<Member>[] = [
     {
@@ -139,7 +170,7 @@ export default function AboutUsPage() {
     },
     {
       accessorKey: "image_url",
-      header: "Avatar",
+      header: "იმიჯი",
       cell: ({ row }) =>
         row.original.image_url ? (
           <img
@@ -157,11 +188,30 @@ export default function AboutUsPage() {
           </div>
         ),
     },
-    { accessorKey: "name", header: "Name" },
-    { accessorKey: "role", header: "Role", cell: ({ row }) => row.original.role || "—" },
+    {
+      accessorKey: "name",
+      header: "სახელი",
+      cell: ({ row }) => (
+        <span className="font-medium whitespace-nowrap">
+          {lang === "ka" && row.original.name_ka
+            ? row.original.name_ka
+            : row.original.name}
+        </span>
+      ),
+    },
+    {
+      accessorKey: "role",
+      header: "როლი",
+      cell: ({ row }) => {
+        const role = lang === "ka" && row.original.role_ka
+          ? row.original.role_ka
+          : row.original.role
+        return <span>{role || "—"}</span>
+      },
+    },
     {
       accessorKey: "created_at",
-      header: "Joined",
+      header: "შეუერთდა",
       cell: ({ row }) => new Date(row.original.created_at).toLocaleDateString("en-US"),
     },
     {
@@ -183,14 +233,14 @@ export default function AboutUsPage() {
               }}
             >
               <Pencil className="h-4 w-4" />
-              Edit
+              დააედითე
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 text-destructive focus:text-destructive"
-              onClick={() => handleDeleteMember(row.original.id)}
+              onClick={() => handleDeleteMember(row.original.id, row.original.image_url)}
             >
               <Trash2 className="h-4 w-4" />
-              Delete
+              წაშალე
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -203,30 +253,52 @@ export default function AboutUsPage() {
   return (
     <div className="w-full p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">About us</h1>
-        <Button onClick={() => setSheetOpen(true)}>
-          <Pencil />
-          Edit
-        </Button>
+        <h1 className="text-2xl font-semibold tracking-tight">ჩვენს შესახებ</h1>
+
+        <div className="flex items-center gap-2">
+          <div className="flex items-center rounded-md border p-0.5 gap-0.5">
+            <Button
+              variant={lang === "en" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setLang("en")}
+            >
+              EN
+            </Button>
+            <Button
+              variant={lang === "ka" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 px-3 text-xs"
+              onClick={() => setLang("ka")}
+            >
+              KA
+            </Button>
+          </div>
+
+          <Button onClick={() => setSheetOpen(true)}>
+            <Pencil />
+            დააედითე
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <Card className="rounded-xl bg-sidebar p-5 flex flex-col gap-3">
-          <p className="text-xs font-semibold text-muted-foreground">Description</p>
+          <p className="text-xs font-semibold text-muted-foreground">აღწერა</p>
           <p className="text-sm font-semibold leading-relaxed">
-            {data?.description ?? "No description yet."}
+            {displayDescription ?? "No description yet."}
           </p>
         </Card>
 
         <div className="rounded-xl border border-border bg-sidebar p-5 flex flex-col gap-3">
-          <p className="text-xs font-semibold text-muted-foreground">Main Video</p>
+          <p className="text-xs font-semibold text-muted-foreground">მთავარი ვიდეო</p>
           {videoPublicUrl ? (
             <div className="rounded-lg overflow-hidden aspect-video w-full bg-black">
               <video src={videoPublicUrl} controls className="w-full h-full object-cover" />
             </div>
           ) : (
             <div className="rounded-lg bg-black flex flex-col items-center justify-center aspect-video w-full gap-2">
-              <p className="text-sm text-muted-foreground">No video uploaded</p>
+              <p className="text-sm text-muted-foreground">არარის ვიდეოები.</p>
             </div>
           )}
         </div>
@@ -234,7 +306,7 @@ export default function AboutUsPage() {
 
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Team Members</h2>
+          <h2 className="text-lg font-semibold">გუნდის წევრები</h2>
           <Button
             onClick={() => {
               setEditMember(null)
@@ -242,7 +314,7 @@ export default function AboutUsPage() {
             }}
           >
             <Plus />
-            Add Member
+            დაამატე გუნდის წევრი
           </Button>
         </div>
 
@@ -252,8 +324,8 @@ export default function AboutUsPage() {
       <SheetPanel
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        title="Edit About Us"
-        description="Update the academy's about us content."
+        title="დააედითე ჩვენს შესახებ გვერდი"
+        description="დაააფდეითე აკადემიის „ჩვენს შესახებ„ გვერდი."
         side="right"
         className="w-125 sm:max-w-125 p-4"
       >
@@ -268,13 +340,17 @@ export default function AboutUsPage() {
 
       <SheetPanel
         open={memberSheetOpen}
-        onOpenChange={() => setMemberSheetOpen(false)}
-        title={editMember ? "Edit Member" : "Add Member"}
-        description={editMember ? "Update the member info." : "Add a new team member."}
+        onOpenChange={(open) => {
+          setMemberSheetOpen(open)
+          if (!open) setEditMember(null)
+        }}
+        title={editMember ? "დააედითე გუნდის წევრი" : "დაამატე გუნდის წევრი"}
+        description={editMember ? "დაააფდეითე გუნდის წევრის ინფორმაცია." : "დაამატე ახალი გუნდის წევრი."}
         side="right"
         className="w-125 sm:max-w-125 p-4"
       >
         <MembersForm
+          member={editMember}
           onSuccess={() => {
             setMemberSheetOpen(false)
             setEditMember(null)

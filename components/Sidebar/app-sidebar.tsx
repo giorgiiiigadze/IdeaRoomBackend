@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 import { CurrentUserAvatar } from "../current-user-avatar"
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup,
-  SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
+  SidebarGroupContent, SidebarHeader,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import {
@@ -18,15 +18,15 @@ import { LayoutDashboard, MessageSquare, Notebook, MonitorCog, ChevronsUpDown, L
 import type { User } from "@supabase/supabase-js"
 
 const navItems = [
-  { title: "Dashboard", icon: LayoutDashboard, href: "/dashboard"},
-  { title: "Admins", icon: UserRoundKey, href: "/admins"},
-  { title: "Services", icon: MonitorCloud, href: "/services"},
-  {title: "Projects", icon: FolderOpenDot, href: "/projects"},
-  { title: "Client Responses", icon: MessageSquare, href: "/client-responses"},
-  { title: "Blogs", icon: Notebook, href: "/blogs"},
-  { title: "Works", icon: MonitorCog, href: "/works"},
-  { title: "About Us", icon: UsersRound, href: "/about-us"},
-  { title: "Contact", icon: Mail, href: "/contact"},
+  { title: "დაშბორდი", icon: LayoutDashboard, href: "/dashboard"},
+  { title: "ადმინები", icon: UserRoundKey, href: "/admins"},
+  { title: "სერვისები", icon: MonitorCloud, href: "/services"},
+  {title: "პროექტები", icon: FolderOpenDot, href: "/projects"},
+  { title: "ტესტიმონიალები", icon: MessageSquare, href: "/client-responses"},
+  { title: "ბლოგები", icon: Notebook, href: "/blogs"},
+  { title: "სამუშაოები", icon: MonitorCog, href: "/works"},
+  { title: "ჩვენს შესახებ", icon: UsersRound, href: "/about-us"},
+  { title: "კონტაქტები", icon: Mail, href: "/contact"},
 ]
 
 export function AppSidebar() {
@@ -49,13 +49,12 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="px-4 py-3 text-lg font-semibold">
-        Idearoom backend
+        იდეარუმის ბექენდი
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupContent>
-            <SidebarGroupLabel>Dashboard</SidebarGroupLabel>
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.href}>

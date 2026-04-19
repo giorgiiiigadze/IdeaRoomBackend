@@ -57,7 +57,7 @@ export default function AdminsPage() {
       {
         accessorKey: "email",
         id: "email",
-        header: "Email",
+        header: "ემაილი",
         cell: (info) => (
           <span className="text-blue-600 dark:text-blue-400">{(info.getValue() as string) ?? "—"}</span>
         ),
@@ -68,7 +68,7 @@ export default function AdminsPage() {
       {
         accessorKey: "created_at",
         id: "created_at",
-        header: "Created At",
+        header: "შექმნის თარიღი",
         cell: (info) => (
           <span className="text-muted-foreground">
             {new Date(info.getValue() as string).toLocaleDateString()}
@@ -79,7 +79,7 @@ export default function AdminsPage() {
       {
         accessorKey: "last_sign_in_at",
         id: "last_sign_in_at",
-        header: "Last Sign In",
+        header: "ბოლოს დალოგინება",
         cell: (info) => {
           const val = info.getValue() as string | null
           return (
@@ -92,7 +92,7 @@ export default function AdminsPage() {
       },
       {
         id: "display_name",
-        header: "Display Name",
+        header: "საჩვენებელი სახელი",
         accessorFn: (row) =>
           (row.user_metadata?.display_name as string) ?? null,
         cell: (info) => (
@@ -128,15 +128,15 @@ export default function AdminsPage() {
     <div className="w-full p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <h1 className="text-2xl font-semibold tracking-tight">Admins</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">ადმინები</h1>
           <p className="text-sm text-muted-foreground">
-            Manage admin accounts —{" "}
-            {users.length} user{users.length !== 1 ? "s" : ""} total
+            აკონტროლე ადმინების აქაუნთები —{" "}
+            {users.length} ადმინი ჯამში
           </p>
         </div>
         <Button onClick={() => setSheetOpen(true)}>
           <Plus />
-          Add Admin
+          დაამატე ადმინი
         </Button>
       </div>
 
@@ -158,8 +158,8 @@ export default function AdminsPage() {
       <SheetPanel
         open={sheetOpen}
         onOpenChange={setSheetOpen}
-        title="Add Admin"
-        description="Create a new admin user account."
+        title="დაამატე ადმინი"
+        description="შექმენი ახალი ადმინ მომხმარებელი."
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"
       >

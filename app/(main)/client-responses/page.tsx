@@ -24,6 +24,9 @@ type ClientResponse = {
   name: string
   role: string | null
   quote: string
+  name_ka: string | null
+  role_ka: string | null
+  quote_ka: string | null
   avatar_url: string | null
   is_active: boolean
   created_at: string
@@ -34,6 +37,7 @@ export default function ClientResponsePage() {
   const [error, setError] = useState<string | null>(null)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [editData, setEditData] = useState<ClientResponse | null>(null)
+  const [lang, setLang] = useState<"en" | "ka">("en")
 
   const fetchData = useCallback(async () => {
     const supabase = createClient()
@@ -54,7 +58,9 @@ export default function ClientResponsePage() {
     }
 
     load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   function handleOpenEdit(row: ClientResponse) {
@@ -67,7 +73,11 @@ export default function ClientResponsePage() {
     setSheetOpen(true)
   }
 
-  async function handleDelete(id: string, name: string, avatarUrl: string | null) {
+  async function handleDelete(
+    id: string,
+    name: string,
+    avatarUrl: string | null
+  ) {
     const supabase = createClient()
 
     if (avatarUrl) {
@@ -79,17 +89,24 @@ export default function ClientResponsePage() {
           .from(bucketName)
           .remove([filePath])
         if (storageError) {
-          toast.error("Failed to delete image", { description: storageError.message })
+          toast.error("Failed to delete image", {
+            description: storageError.message,
+          })
           return
         }
       }
     }
 
-    const { error } = await supabase.from("testimonials").delete().eq("id", id)
+    const { error } = await supabase
+      .from("testimonials")
+      .delete()
+      .eq("id", id)
     if (error) {
       toast.error("Failed to delete", { description: error.message })
     } else {
-      toast.success("Testimonial deleted", { description: `"${name}" was removed.` })
+      toast.success("Testimonial deleted", {
+        description: `"${name}" was removed.`,
+      })
       fetchData()
     }
   }
@@ -103,7 +120,9 @@ export default function ClientResponsePage() {
             table.getIsAllPageRowsSelected() ||
             (table.getIsSomePageRowsSelected() && "indeterminate")
           }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+          onCheckedChange={(value) =>
+            table.toggleAllPageRowsSelected(!!value)
+          }
           aria-label="Select all"
         />
       ),
@@ -119,11 +138,15 @@ export default function ClientResponsePage() {
     },
     {
       accessorKey: "avatar_url",
-      header: "Avatar",
+      header: "იმიჯი",
       cell: ({ row }) => {
         const url = row.getValue("avatar_url") as string | null
         return url ? (
-          <img src={url} alt="Avatar" className="size-10 rounded-full object-cover" />
+          <img
+            src={url}
+            alt="Avatar"
+            className="size-10 rounded-full object-cover"
+          />
         ) : (
           <span className="text-sm text-muted-foreground">—</span>
         )
@@ -131,32 +154,53 @@ export default function ClientResponsePage() {
     },
     {
       accessorKey: "name",
-      header: "Name",
-      cell: ({ row }) => <span className="font-medium">{row.getValue("name")}</span>,
+      header: "სახელი",
+      cell: ({ row }) => (
+        <span className="font-medium">
+          {lang === "ka"
+            ? (row.original.name_ka ?? row.original.name)
+            : row.original.name}
+        </span>
+      ),
     },
     {
       accessorKey: "role",
-      header: "Role",
-      cell: ({ row }) => row.getValue("role") ?? "—",
+      header: "როლი",
+      cell: ({ row }) =>
+        lang === "ka"
+          ? (row.original.role_ka ?? row.original.role ?? "—")
+          : (row.original.role ?? "—"),
     },
     {
       accessorKey: "quote",
-      header: "Quote",
+      header: "გამონათქვამი",
       cell: ({ row }) => (
-        <span className="max-w-xs truncate block">{row.getValue("quote")}</span>
+        <span className="max-w-xs truncate block">
+          {lang === "ka"
+            ? (row.original.quote_ka ?? row.original.quote)
+            : row.original.quote}
+        </span>
       ),
     },
     {
       accessorKey: "is_active",
-      header: "Status",
+      header: "სტატუსი",
       cell: ({ row }) => {
         const active = row.getValue("is_active") as boolean
         return (
           <Badge
             variant="outline"
-            className={active ? "text-green-600 border-green-300 bg-green-50 gap-1" : "text-muted-foreground gap-1"}
+            className={
+              active
+                ? "text-green-600 border-green-300 bg-green-50 gap-1"
+                : "text-muted-foreground gap-1"
+            }
           >
-            <span className={`size-1.5 rounded-full inline-block ${active ? "bg-green-500" : "bg-muted-foreground"}`} />
+            <span
+              className={`size-1.5 rounded-full inline-block ${
+                active ? "bg-green-500" : "bg-muted-foreground"
+              }`}
+            />
             {active ? "Active" : "Inactive"}
           </Badge>
         )
@@ -164,8 +208,9 @@ export default function ClientResponsePage() {
     },
     {
       accessorKey: "created_at",
-      header: "Created At",
-      cell: ({ row }) => new Date(row.getValue("created_at")).toLocaleDateString(),
+      header: "შექმნის თარიღი",
+      cell: ({ row }) =>
+        new Date(row.getValue("created_at")).toLocaleDateString(),
     },
     {
       id: "actions",
@@ -183,14 +228,20 @@ export default function ClientResponsePage() {
               onClick={() => handleOpenEdit(row.original)}
             >
               <Pencil className="h-4 w-4" />
-              Edit
+              დააედითე
             </DropdownMenuItem>
             <DropdownMenuItem
               className="gap-2 text-destructive focus:text-destructive"
-              onClick={() => handleDelete(row.original.id, row.original.name, row.original.avatar_url)}
+              onClick={() =>
+                handleDelete(
+                  row.original.id,
+                  row.original.name,
+                  row.original.avatar_url
+                )
+              }
             >
               <Trash2 className="h-4 w-4" />
-              Delete
+              წაშალე
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -210,29 +261,57 @@ export default function ClientResponsePage() {
       <Tabs defaultValue="all" className="w-full flex-col gap-6">
         <div className="flex w-full items-center justify-between">
           <TabsList className="**:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:bg-muted-foreground/30 **:data-[slot=badge]:px-1">
-            <TabsTrigger value="all">All</TabsTrigger>
+            <TabsTrigger value="all">ყველა</TabsTrigger>
             <TabsTrigger value="active">
-              Active <Badge variant="secondary">{activeCount}</Badge>
+              აქტიური <Badge variant="secondary">{activeCount}</Badge>
             </TabsTrigger>
             <TabsTrigger value="inactive">
-              Inactive <Badge variant="secondary">{inactiveCount}</Badge>
+              არა აქტიური <Badge variant="secondary">{inactiveCount}</Badge>
             </TabsTrigger>
           </TabsList>
 
-          <Button onClick={handleOpenAdd}>
-            <Plus />
-            Add Testimonial
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Language toggle */}
+            <div className="flex items-center rounded-md border p-0.5 gap-0.5">
+              <Button
+                variant={lang === "en" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("en")}
+              >
+                EN
+              </Button>
+              <Button
+                variant={lang === "ka" ? "secondary" : "ghost"}
+                size="sm"
+                className="h-7 px-3 text-xs"
+                onClick={() => setLang("ka")}
+              >
+                KA
+              </Button>
+            </div>
+
+            <Button onClick={handleOpenAdd}>
+              <Plus />
+              დაამატე ტესტიმონიალი
+            </Button>
+          </div>
         </div>
 
         <TabsContent value="all" className="flex flex-col gap-4">
           <DataTable data={data} columns={columns} />
         </TabsContent>
         <TabsContent value="active" className="flex flex-col gap-4">
-          <DataTable data={data.filter((d) => d.is_active)} columns={columns} />
+          <DataTable
+            data={data.filter((d) => d.is_active)}
+            columns={columns}
+          />
         </TabsContent>
         <TabsContent value="inactive" className="flex flex-col gap-4">
-          <DataTable data={data.filter((d) => !d.is_active)} columns={columns} />
+          <DataTable
+            data={data.filter((d) => !d.is_active)}
+            columns={columns}
+          />
         </TabsContent>
       </Tabs>
 
@@ -243,7 +322,11 @@ export default function ClientResponsePage() {
           if (!open) setEditData(null)
         }}
         title={editData ? "Edit Testimonial" : "Add Testimonial"}
-        description={editData ? "Update the client response." : "Fill in the details to add a new client response."}
+        description={
+          editData
+            ? "Update the client response."
+            : "Fill in the details to add a new client response."
+        }
         side="right"
         className="w-[500px] sm:max-w-[500px] p-4"
       >
