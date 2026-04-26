@@ -26,8 +26,8 @@ export function DailyUsersChart({ data }: { data: { date: string; users: number 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Daily Users</CardTitle>
-        <CardDescription>Last 30 days</CardDescription>
+        <CardTitle>ყოველდღიური მომხმარებლები</CardTitle>
+        <CardDescription>ბოლო 30 დღე</CardDescription>
       </CardHeader>
       <CardContent>
         <ChartContainer config={chartConfig} className="h-[250px] w-full">

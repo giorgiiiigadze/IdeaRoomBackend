@@ -18,14 +18,14 @@ import { ActiveNowCard } from "@/components/Analytics/ActiveNowCard"
 export const revalidate = 300
 
 const sections = [
-  { title: "Admins", icon: UserRoundKey, href: "/admins", description: "Manage admin users" },
-  { title: "Services", icon: MonitorCloud, href: "/services", description: "Manage your services" },
-  { title: "Projects", icon: FolderOpenDot, href: "/projects", description: "View all projects" },
-  { title: "Client Responses", icon: MessageSquare, href: "/client-responses", description: "Review client feedback" },
-  { title: "Blogs", icon: Notebook, href: "/blogs", description: "Write and manage blogs" },
-  { title: "Works", icon: MonitorCog, href: "/works", description: "Showcase your works" },
-  { title: "About Us", icon: UsersRound, href: "/about-us", description: "Edit about us page" },
-  { title: "Contact", icon: Mail, href: "/contact", description: "Manage contact info" },
+  { title: "ადმინები", icon: UserRoundKey, href: "/admins", description: "ადმინისტრატორების მართვა" },
+  { title: "სერვისები", icon: MonitorCloud, href: "/services", description: "სერვისების მართვა" },
+  { title: "პროექტები", icon: FolderOpenDot, href: "/projects", description: "ყველა პროექტის ნახვა" },
+  { title: "ტესტიმონიალები", icon: MessageSquare, href: "/client-responses", description: "კლიენტების გამოხმაურებების მიმოხილვა" },
+  { title: "ბლოგები", icon: Notebook, href: "/blogs", description: "ბლოგების წერა და მართვა" },
+  { title: "სამუშაოები", icon: MonitorCog, href: "/works", description: "შესრულებული სამუშაოების პრეზენტაცია" },
+  { title: "ჩვენს შესახებ", icon: UsersRound, href: "/about-us", description: "ჩვენს შესახებ გვერდის რედაქტირება" },
+  { title: "კონტაქტები", icon: Mail, href: "/contact", description: "საკონტაქტო ინფორმაციის მართვა" },
 ]
 
 async function getAnalyticsData() {
@@ -92,7 +92,7 @@ export default async function DashboardPage() {
           <CardHeader className="pb-2 flex flex-row items-center gap-2">
             <Users className="h-4 w-4 text-muted-foreground" />
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Users (30 days)
+              მომხმარებლები (30 დღე)
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -104,7 +104,7 @@ export default async function DashboardPage() {
           <CardHeader className="pb-2 flex flex-row items-center gap-2">
             <Eye className="h-4 w-4 text-muted-foreground" />
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Page Views (30 days)
+              გვერდის ნახვები (30 დღე)
             </CardTitle>
           </CardHeader>
           <CardContent>

@@ -14,7 +14,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { LayoutDashboard, MessageSquare, Notebook, MonitorCog, ChevronsUpDown, LogOut, UserRoundKey, MonitorCloud, Mail, UsersRound, FolderOpenDot } from "lucide-react"
+import { LayoutDashboard, MessageSquare, Notebook, MonitorCog, ChevronsUpDown, LogOut, UserRoundKey, MonitorCloud, Mail, UsersRound, FolderOpenDot, Feather } from "lucide-react"
 import type { User } from "@supabase/supabase-js"
 
 const navItems = [
@@ -25,6 +25,7 @@ const navItems = [
   { title: "ტესტიმონიალები", icon: MessageSquare, href: "/client-responses"},
   { title: "ბლოგები", icon: Notebook, href: "/blogs"},
   { title: "სამუშაოები", icon: MonitorCog, href: "/works"},
+  { title: "ბრენდები", icon: Feather, href: "/brands"},
   { title: "ჩვენს შესახებ", icon: UsersRound, href: "/about-us"},
   { title: "კონტაქტები", icon: Mail, href: "/contact"},
 ]

@@ -32,7 +32,7 @@ export function ActiveNowCard({ initialValue }: { initialValue: string }) {
       <CardHeader className="pb-2 flex flex-row items-center gap-2">
         <Radio className={`h-4 w-4 text-green-500 ${loading ? '' : 'animate-pulse'}`} />
         <CardTitle className="text-sm font-medium text-muted-foreground">
-          Active (last 30 min)
+          აქტიურები (ბოლო 30 წუთი)
         </CardTitle>
       </CardHeader>
       <CardContent>
